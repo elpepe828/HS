@@ -1,19 +1,19 @@
 -- ===================================================================
--- PROJECT RGG: ROBLOX GAME GUARDIAN PRO (Versión v7.0 - SPY INTEGRADO)
--- Características: Clon de iGameGod + Captura y Modificación de Red en Vivo
+-- PROJECT RGG: ROBLOX GAME GUARDIAN PRO (Versión v8.0 - STEALTH ENGINE)
+-- Características: Clon de iGameGod + Inyector de Red Pasivo (100% Sin Hooks / Anti-Ban)
 -- ===================================================================
 
 local RGG = {
     Resultados = {},
     Congelados = {}, 
-    RemotesCapturados = {}, -- Almacena eventos de red interceptados
+    RemotesFisicos = {}, -- Almacena los Remotes encontrados físicamente en el mapa/juego
     TiposValores = {"NumberValue", "IntValue", "DoubleConstrainedValue"},
     HiloFreeze = nil,
     IndiceSeleccionado = nil,
-    ModoActual = "Memoria" -- Modos: "Memoria" o "Red"
+    ModoActual = "Memoria"
 }
 
--- [ OPTIMIZADOR DE RENDIMIENTO ANTI-CRASH ]
+-- [ OPTIMIZADOR INDEPENDIENTE ]
 local function procesarConPausas(lista, accion)
     for i, elemento in ipairs(lista) do
         accion(elemento)
@@ -22,51 +22,19 @@ local function procesarConPausas(lista, accion)
 end
 
 -- ===================================================================
--- 1. MOTOR DE INTERCEPCIÓN EN VIVO (REMOTE SPY)
--- ===================================================================
-local mt = getrawmetatable(game)
-local oldNamecall = mt.__namecall
-setreadonly(mt, false)
-
-mt.__namecall = newcclosure(function(self, ...)
-    local args = {...}
-    local method = getnamecallmethod()
-    
-    -- Interceptar ejecuciones legítimas del juego hacia el servidor
-    if method == "FireServer" and self:IsA("RemoteEvent") then
-        local yaExiste = false
-        for _, v in ipairs(RGG.RemotesCapturados) do
-            if v.Instancia == self then yaExiste = true break end
-        end
-        
-        -- Guardar el Remote y sus argumentos actuales para análisis
-        if not yaExiste then
-            table.insert(RGG.RemotesCapturados, {
-                Instancia = self,
-                Nombre = "[RED] " .. self.Name,
-                Args = args
-            })
-        else
-            -- Actualizar los últimos argumentos capturados
-            for _, v in ipairs(RGG.RemotesCapturados) do
-                if v.Instancia == self then v.Args = args break end
-            end
-        end
-    end
-    return oldNamecall(self, ...)
-end)
-setreadonly(mt, true)
-
--- ===================================================================
--- 2. MOTOR DE MEMORIA LOCAL
+-- 1. MOTOR DE ESCÁNER SEGURO (PASIVO / SIN METATABLAS)
 -- ===================================================================
 function RGG.Buscar(valor)
     RGG.Resultados = {}
+    RGG.RemotesFisicos = {}
     local objetivo = tonumber(valor)
+    
+    -- Escaneo ciego y pasivo de todo el árbol de objetos del juego
     local todosLosObjetos = game:GetDescendants()
     
     procesarConPausas(todosLosObjetos, function(obj)
         pcall(function()
+            -- A. Clasificar variables locales en memoria
             if table.find(RGG.TiposValores, obj.ClassName) then
                 if not objetivo or obj.Value == objetivo then
                     table.insert(RGG.Resultados, {
@@ -74,6 +42,20 @@ function RGG.Buscar(valor)
                         Tipo = "Value", 
                         Nombre = obj.Parent.Name .. " ➔ " .. obj.Name, 
                         UltimoValor = obj.Value
+                    })
+                end
+            end
+            
+            -- B. Clasificar Remotes físicos (Para forzar cambios reales en el servidor)
+            if obj:IsA("RemoteEvent") then
+                local nombreLower = string.lower(obj.Name)
+                -- Filtrar palabras clave comunes de la economía del juego
+                if string.find(nombreLower, "cash") or string.find(nombreLower, "money") or string.find(nombreLower, "reward") or string.find(nombreLower, "add") or string.find(nombreLower, "drive") or string.find(nombreLower, "car") or string.find(nombreLower, "checkpoint") then
+                    table.insert(RGG.RemotesFisicos, {
+                        Instancia = obj,
+                        Tipo = "Remote",
+                        Nombre = "[RED] " .. obj.Name,
+                        Ruta = obj:GetFullName()
                     })
                 end
             end
@@ -106,26 +88,15 @@ function RGG.ModificarEspecifico(indice, nuevoValor)
             end)
         end
     elseif RGG.ModoActual == "Red" then
-        -- MODIFICACIÓN REAL: Forzar disparo de red manipulado
-        local data = RGG.RemotesCapturados[indice]
-        if not data then return end
-        
-        local nuevosArgs = {}
-        if data.Args and #data.Args > 0 then
-            for i, arg in ipairs(data.Args) do
-                -- Si el argumento original era numérico, inyectamos nuestro hack
-                if type(arg) == "number" then
-                    nuevosArgs[i] = num
-                else
-                    nuevosArgs[i] = arg
-                end
-            end
-        else
-            nuevosArgs = {num} -- Si no tenía argumentos, enviamos el número directo
-        end
+        -- INYECTOR REAL PASIVO: Disparar el evento de forma legítima como lo haría el juego
+        local remoteData = RGG.RemotesFisicos[indice]
+        if not remoteData then return end
         
         pcall(function()
-            data.Instancia:FireServer(unpack(nuevosArgs))
+            -- Enviamos variaciones de argumentos para probar cuál acepta el servidor
+            remoteData.Instancia:FireServer(num)
+            remoteData.Instancia:FireServer(true, num)
+            remoteData.Instancia:FireServer("Reward", num)
         end)
     end
 end
@@ -133,23 +104,23 @@ end
 function RGG.Limpiar()
     RGG.Resultados = {}
     RGG.Congelados = {}
-    RGG.RemotesCapturados = {}
+    RGG.RemotesFisicos = {}
     RGG.IndiceSeleccionado = nil
     if RGG.HiloFreeze then task.cancel(RGG.HiloFreeze); RGG.HiloFreeze = nil end
 end
 
 -- ===================================================================
--- 3. INTERFAZ GRÁFICA DE USUARIO INTERACTIVA
+-- 2. INTERFAZ GRÁFICA DE USUARIO EVASIVA
 -- ===================================================================
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-ScreenGui.Name = "RGG_v7_SpyConsole"
+ScreenGui.Name = "RGG_v8_StealthConsole"
 
 local IconoGG = Instance.new("TextButton", ScreenGui)
 IconoGG.Size = UDim2.new(0, 55, 0, 55)
 IconoGG.Position = UDim2.new(0, 10, 0, 150)
-IconoGG.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+IconoGG.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 IconoGG.Text = "RGG"
-IconoGG.TextColor3 = Color3.fromRGB(255, 180, 0)
+IconoGG.TextColor3 = Color3.fromRGB(0, 255, 120)
 IconoGG.Font = Enum.Font.SourceSansBold
 IconoGG.TextSize = 22
 IconoGG.Active = true
@@ -158,37 +129,37 @@ IconoGG.Draggable = true
 local Panel = Instance.new("Frame", ScreenGui)
 Panel.Size = UDim2.new(0, 360, 0, 380)
 Panel.Position = UDim2.new(0.5, -180, 0.4, -190)
-Panel.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+Panel.BackgroundColor3 = Color3.fromRGB(16, 16, 16)
 Panel.Visible = false
 Panel.Active = true
 Panel.Draggable = true
 
 local Titulo = Instance.new("TextLabel", Panel)
 Titulo.Size = UDim2.new(1, 0, 0, 35)
-Titulo.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
-Titulo.Text = " 📡 RGG Network & Memory Engine v7.0"
+Titulo.BackgroundColor3 = Color3.fromRGB(24, 24, 24)
+Titulo.Text = " 安全 RGG Stealth Memory & Network Engine v8.0"
 Titulo.TextColor3 = Color3.fromRGB(255, 255, 255)
 Titulo.Font = Enum.Font.SourceSansBold
-Titulo.TextSize = 14
+Titulo.TextSize = 13
 
 local InputValor = Instance.new("TextBox", Panel)
 InputValor.Size = UDim2.new(0, 230, 0, 35)
 InputValor.Position = UDim2.new(0, 10, 0, 45)
-InputValor.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-InputValor.PlaceholderText = "Número de memoria a buscar..."
+InputValor.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+InputValor.PlaceholderText = "Número exacto a buscar..."
 InputValor.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local LabelEstado = Instance.new("TextLabel", Panel)
 LabelEstado.Size = UDim2.new(0, 100, 0, 35)
 LabelEstado.Position = UDim2.new(0, 250, 0, 45)
-LabelEstado.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+LabelEstado.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 LabelEstado.Text = "Líneas: 0"
 LabelEstado.TextColor3 = Color3.fromRGB(0, 255, 150)
 
 local BtnBuscar = Instance.new("TextButton", Panel)
 BtnBuscar.Size = UDim2.new(0, 110, 0, 35)
 BtnBuscar.Position = UDim2.new(0, 10, 0, 90)
-BtnBuscar.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
+BtnBuscar.BackgroundColor3 = Color3.fromRGB(0, 100, 180)
 BtnBuscar.Text = "🔍 Buscar Memoria"
 BtnBuscar.TextColor3 = Color3.fromRGB(255, 255, 255)
 BtnBuscar.TextSize = 12
@@ -196,15 +167,15 @@ BtnBuscar.TextSize = 12
 local BtnModoRed = Instance.new("TextButton", Panel)
 BtnModoRed.Size = UDim2.new(0, 110, 0, 35)
 BtnModoRed.Position = UDim2.new(0, 125, 0, 90)
-BtnModoRed.BackgroundColor3 = Color3.fromRGB(150, 0, 150)
-BtnModoRed.Text = "📡 Mostrar Tráfico"
+BtnModoRed.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+BtnModoRed.Text = "📡 Remotes Seguros"
 BtnModoRed.TextColor3 = Color3.fromRGB(255, 255, 255)
 BtnModoRed.TextSize = 12
 
 local BtnModoMemoria = Instance.new("TextButton", Panel)
 BtnModoMemoria.Size = UDim2.new(0, 110, 0, 35)
 BtnModoMemoria.Position = UDim2.new(0, 240, 0, 90)
-BtnModoMemoria.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+BtnModoMemoria.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 BtnModoMemoria.Text = "📦 Ver Escaneos"
 BtnModoMemoria.TextColor3 = Color3.fromRGB(255, 255, 255)
 BtnModoMemoria.TextSize = 12
@@ -212,7 +183,7 @@ BtnModoMemoria.TextSize = 12
 local ContenedorLista = Instance.new("ScrollingFrame", Panel)
 ContenedorLista.Size = UDim2.new(1, -20, 0, 170)
 ContenedorLista.Position = UDim2.new(0, 10, 0, 135)
-ContenedorLista.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+ContenedorLista.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
 ContenedorLista.CanvasSize = UDim2.new(0, 0, 0, 0)
 
 local UIListLayout = Instance.new("UIListLayout", ContenedorLista)
@@ -221,21 +192,21 @@ UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 local InputMod = Instance.new("TextBox", Panel)
 InputMod.Size = UDim2.new(0, 165, 0, 35)
 InputMod.Position = UDim2.new(0, 10, 0, 315)
-InputMod.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-InputMod.PlaceholderText = "Cantidad/Inyección..."
+InputMod.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+InputMod.PlaceholderText = "Monto a Inyectar..."
 InputMod.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local BtnEjecutarHack = Instance.new("TextButton", Panel)
 BtnEjecutarHack.Size = UDim2.new(0, 85, 0, 35)
 BtnEjecutarHack.Position = UDim2.new(0, 185, 0, 315)
-BtnEjecutarHack.BackgroundColor3 = Color3.fromRGB(0, 150, 70)
-BtnEjecutarHack.Text = "⚡ Inyectar"
+BtnEjecutarHack.BackgroundColor3 = Color3.fromRGB(0, 135, 60)
+BtnEjecutarHack.Text = "⚡ Forzar"
 BtnEjecutarHack.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local BtnLimpiar = Instance.new("TextButton", Panel)
 BtnLimpiar.Size = UDim2.new(0, 75, 0, 35)
 BtnLimpiar.Position = UDim2.new(0, 275, 0, 315)
-BtnLimpiar.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+BtnLimpiar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 BtnLimpiar.Text = "🔄 Reset"
 BtnLimpiar.TextColor3 = Color3.fromRGB(255, 255, 255)
 
@@ -244,7 +215,7 @@ local function refrescarListaVisual()
         if hijo:IsA("Frame") then hijo:Destroy() end
     end
     
-    local listaOrigen = RGG.ModoActual == "Memoria" and RGG.Resultados or RGG.RemotesCapturados
+    local listaOrigen = RGG.ModoActual == "Memoria" and RGG.Resultados or RGG.RemotesFisicos
     ContenedorLista.CanvasSize = UDim2.new(0, 0, 0, #listaOrigen * 32)
     
     local maxItems = math.min(#listaOrigen, 50)
@@ -252,23 +223,25 @@ local function refrescarListaVisual()
         local data = listaOrigen[i]
         local Fila = Instance.new("Frame", ContenedorLista)
         Fila.Size = UDim2.new(1, 0, 0, 30)
-        Fila.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+        Fila.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
         
         local BotonSeleccionar = Instance.new("TextButton", Fila)
         BotonSeleccionar.Size = UDim2.new(1, 0, 1, 0)
-        BotonSeleccionar.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-        BotonSeleccionar.TextColor3 = RGG.ModoActual == "Red" and Color3.fromRGB(255, 150, 255) or Color3.fromRGB(230, 230, 230)
+        BotonSeleccionar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        BotonSeleccionar.TextColor3 = RGG.ModoActual == "Red" and Color3.fromRGB(0, 200, 255) or Color3.fromRGB(230, 230, 230)
         BotonSeleccionar.TextXAlignment = Enum.TextXAlignment.Left
-BotonSeleccionar.Font = Enum.Font.SourceSans
-BotonSeleccionar.TextSize = 13
-if RGG.ModoActual == "Memoria" then
-BotonSeleccionar.Text = string.format(" [%02d] %s = (%s)", i, data.Nombre, tostring(data.Instancia.Value))
-if RGG.Congelados[data] then BotonSeleccionar.BackgroundColor3 = Color3.fromRGB(0, 100, 150) end
-else
-BotonSeleccionar.Text = string.format(" [📡] %s (ArgCount: %d)", data.Nombre, #data.Args)
-end
-if RGG.IndiceSeleccionado == i then
-BotonSeleccionar.BackgroundColor3 = Color3.fromRGB(150, 0, 150)
+        BotonSeleccionar.Font = Enum.Font.SourceSans
+        BotonSeleccionar.TextSize = 13
+        
+        if RGG.ModoActual == "Memoria" then
+            BotonSeleccionar.Text = string.format(" [%02d] %s = (%s)", i, data.Nombre, tostring(data.Instancia.Value))
+            if RGG.Congelados[data] then BotonSeleccionar.BackgroundColor3 = Color3.fromRGB(0, 100, 150) end
+        else
+            BotonSeleccionar.Text = string.format(" [📡] %s", data.Nombre)
+        end
+        
+        if RGG.IndiceSeleccionado == i then
+BotonSeleccionar.BackgroundColor3 = RGG.ModoActual == "Red" and Color3.fromRGB(0, 100, 180) or Color3.fromRGB(0, 135, 60)
 end
 BotonSeleccionar.MouseButton1Click:Connect(function()
 RGG.IndiceSeleccionado = i
@@ -279,7 +252,7 @@ end
 end
 IconoGG.MouseButton1Click:Connect(function() Panel.Visible = not Panel.Visible end)
 BtnBuscar.MouseButton1Click:Connect(function()
-RGG.ModoActual = "Memoria"
+RGG.ModivActual = "Memoria"
 LabelEstado.Text = "Escan..."
 task.wait(0.01)
 local t = RGG.Buscar(InputValor.Text)
@@ -289,16 +262,17 @@ refrescarListaVisual()
 end)
 BtnModoRed.MouseButton1Click:Connect(function()
 RGG.ModoActual = "Red"
-BtnModoRed.BackgroundColor3 = Color3.fromRGB(150, 0, 150)
-BtnModoMemoria.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-LabelEstado.Text = "Red: " .. #RGG.RemotesCapturados
+BtnModoRed.BackgroundColor3 = Color3.fromRGB(0, 100, 180)
+BtnModoMemoria.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+if #RGG.RemotesFisicos == 0 then RGG.Buscar() end -- Auto-mapeo rápido
+LabelEstado.Text = "Eventos: " .. #RGG.RemotesFisicos
 RGG.IndiceSeleccionado = nil
 refrescarListaVisual()
 end)
 BtnModoMemoria.MouseButton1Click:Connect(function()
 RGG.ModoActual = "Memoria"
-BtnModoMemoria.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
-BtnModoRed.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+BtnModoMemoria.BackgroundColor3 = Color3.fromRGB(0, 135, 60)
+BtnModoRed.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 LabelEstado.Text = "Mem: " .. #RGG.Resultados
 RGG.IndiceSeleccionado = nil
 refrescarListaVisual()
@@ -306,7 +280,7 @@ end)
 BtnEjecutarHack.MouseButton1Click:Connect(function()
 if InputMod.Text == "" or not RGG.IndiceSeleccionado then return end
 RGG.ModificarEspecifico(RGG.IndiceSeleccionado, InputMod.Text)
-LabelEstado.Text = "Inyectado!"
+LabelEstado.Text = "¡Enviado!"
 task.wait(0.1)
 refrescarListaVisual()
 end)
