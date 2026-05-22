@@ -1,5 +1,5 @@
 -- ===================================================================
--- PROJECT RGG: STEALTH CORE (Version v11.0 - EXCLUSIVE FULL ENGLISH)
+-- PROJECT RGG: STEALTH CORE (Version v11.0 - EXCLUSIVE)
 -- Features: iGameGod Clone Layout + Isolated Network Engine (Anti-Detection)
 -- ===================================================================
 
