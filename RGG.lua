@@ -1,124 +1,123 @@
 -- ===================================================================
--- PROJECT RGG: STEALTH CORE (Versión v11.0 - PROTOTIPO EXCLUSIVO)
--- Características: Clon de iGameGod + Motor de Red Aislado (Anti-Detección Total)
+-- PROJECT RGG: STEALTH CORE (Version v11.0 - EXCLUSIVE FULL ENGLISH)
+-- Features: iGameGod Clone Layout + Isolated Network Engine (Anti-Detection)
 -- ===================================================================
 
 local RGG_Stealth = {
-    Resultados = {},
-    Congelados = {},
-    EventosOcultos = {},
-    HiloPersistente = nil,
-    IndiceSeleccionado = nil,
-    ModoActual = "Memoria"
+    Results = {},
+    Frozen = {},
+    HiddenEvents = {},
+    PersistentThread = nil,
+    SelectedIndex = nil,
+    CurrentMode = "Memory"
 }
 
--- [ MOTOR DE BÚSQUEDA ALTERNATIVO ANTI-DETECCIÓN ]
-function RGG_Stealth.EscanearServidores(valorObjetivo)
-    RGG_Stealth.Resultados = {}
-    RGG_Stealth.EventosOcultos = {}
-    local numTarget = tonumber(valorObjetivo)
+-- [ ANTI-DETECTION LIGHTWEIGHT SEARCH ENGINE ]
+function RGG_Stealth.ScanServices(targetValue)
+    RGG_Stealth.Results = {}
+    RGG_Stealth.HiddenEvents = {}
+    local numTarget = tonumber(targetValue)
     
-    -- Solo miramos los servicios críticos para pasar desapercibidos
-    local serviciosClave = {
+    -- Target specific core services to bypass generalized scanning checks
+    local coreServices = {
         game:GetService("ReplicatedStorage"),
         game:GetService("Players").LocalPlayer,
         game:GetService("JointsService")
     }
     
-    for _, servicio in ipairs(serviciosClave) do
+    for _, service in ipairs(coreServices) do
         pcall(function()
-            local hijos = servicio:GetChildren()
-            for _, hijo in ipairs(hijos) do
-                -- Buscar variables en memoria de forma recursiva ligera
-                for _, subHijo in ipairs(hijo:GetDescendants()) do
-                    if subHijo:IsA("IntValue") or subHijo:IsA("NumberValue") then
-                        if not numTarget or subHijo.Value == numTarget then
-                            table.insert(RGG_Stealth.Resultados, {
-                                Objeto = subHijo,
-                                Tipo = "Local",
-                                Nombre = subHijo.Name,
-                                UltimoValor = subHijo.Value
+            local children = service:GetChildren()
+            for _, child in ipairs(children) do
+                -- Recursive search for numerical instances
+                for _, subChild in ipairs(child:GetDescendants()) do
+                    if subChild:IsA("IntValue") or subChild:IsA("NumberValue") then
+                        if not numTarget or subChild.Value == numTarget then
+                            table.insert(RGG_Stealth.Results, {
+                                Object = subChild,
+                                Type = "Local",
+                                Name = subChild.Name,
+                                LastValue = subChild.Value
                             })
                         end
-                    elseif subHijo:IsA("RemoteEvent") then
-                        -- Registrar canales de red físicamente sin levantar alertas
-                        table.insert(RGG_Stealth.EventosOcultos, {
-                            Objeto = subHijo,
-                            Tipo = "Red",
-                            Nombre = "⚡ Canal: " .. subHijo.Name
+                    elseif subChild:IsA("RemoteEvent") then
+                        -- Map physical remotes silently without lifting security flags
+                        table.insert(RGG_Stealth.HiddenEvents, {
+                            Object = subChild,
+                            Type = "Network",
+                            Name = "⚡ Remote: " .. subChild.Name
                         })
                     end
                 end
             end
         end)
     end
-    return #RGG_Stealth.Resultados
+    return #RGG_Stealth.Results
 end
 
--- [ INYECTOR DE RED AISLADO (NO DEJA RASTRO) ]
-function RGG_Stealth.InyectarDato(indice, valorHack, bloquear)
-    local num = tonumber(valorHack)
+-- [ ISOLATED NETWORK INJECTOR (GHOST COROUTINE THREADS) ]
+function RGG_Stealth.InjectData(index, hackValue, freeze)
+    local num = tonumber(hackValue)
     
-    if RGG_Stealth.ModoActual == "Memoria" then
-        local data = RGG_Stealth.Resultados[indice]
+    if RGG_Stealth.CurrentMode == "Memory" then
+        local data = RGG_Stealth.Results[index]
         if not data then return end
         
-        pcall(function() data.Objeto.Value = num end)
-        if bloquear then RGG_Stealth.Congelados[data.Objeto] = num end
+        pcall(function() data.Object.Value = num end)
+        if freeze then RGG_Stealth.Frozen[data.Object] = num end
         
-        if bloquear and not RGG_Stealth.HiloPersistente then
-            RGG_Stealth.HiloPersistente = task.spawn(function()
+        if freeze and not RGG_Stealth.PersistentThread then
+            RGG_Stealth.PersistentThread = task.spawn(function()
                 while true do
-                    local cuenta = 0
-                    for obj, v in pairs(RGG_Stealth.Congelados) do
-                        cuenta = cuenta + 1
+                    local counter = 0
+                    for obj, v in pairs(RGG_Stealth.Frozen) do
+                        counter = counter + 1
                         pcall(function() obj.Value = v end)
                     end
-                    if cuenta == 0 then break end
+                    if counter == 0 then break end
                     task.wait(0.05)
                 end
-                RGG_Stealth.HiloPersistente = nil
+                RGG_Stealth.PersistentThread = nil
             end)
         end
-    elseif RGG_Stealth.ModoActual == "Red" then
-        local dataNet = RGG_Stealth.EventosOcultos[indice]
+    elseif RGG_Stealth.CurrentMode == "Network" then
+        local dataNet = RGG_Stealth.HiddenEvents[index]
         if not dataNet then return end
         
-        -- Ejecución en un hilo fantasma aislado (coroutine)
-        local disparoFantasma = coroutine.wrap(function()
+        -- Isolated coroutine handler that does not append to game call stacks
+        local phantomFire = coroutine.wrap(function()
             pcall(function()
-                dataNet.Objeto:FireServer(num)
-                dataNet.Objeto:FireServer(true, num)
+                dataNet.Object:FireServer(num)
+                dataNet.Object:FireServer(true, num)
             end)
         end)
         
-        if bloquear then
-            -- Si pides bloquear, el hilo fantasma se ejecuta en bucle infinito
+        if freeze then
             task.spawn(function()
-                while RGG_Stealth.EventosOcultos[indice] do
-                    disparoFantasma()
-                    task.wait(0.1) -- Ritmo constante seguro
+                while RGG_Stealth.HiddenEvents[index] do
+                    phantomFire()
+                    task.wait(0.1) -- Safe continuous firing loop
                 end
             end)
         else
-            disparoFantasma()
+            phantomFire()
         end
     end
 end
 
-function RGG_Stealth.LimpiarTodo()
-    RGG_Stealth.Resultados = {}
-    RGG_Stealth.Congelados = {}
-    RGG_Stealth.EventosOcultos = {}
-    RGG_Stealth.IndiceSeleccionado = nil
-    RGG_Stealth.ModoActual = "Memoria"
+function RGG_Stealth.ClearAll()
+    RGG_Stealth.Results = {}
+    RGG_Stealth.Frozen = {}
+    RGG_Stealth.HiddenEvents = {}
+    RGG_Stealth.SelectedIndex = nil
+    RGG_Stealth.CurrentMode = "Memory"
 end
 
 -- ===================================================================
--- INTERFAZ GRÁFICA PRIVADA (GUI EXCLUSIVA DE RGG)
+-- PRIVATE USER INTERFACE (RGG EXCLUSIVE ENGLISH CONSOLE)
 -- ===================================================================
 local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-ScreenGui.Name = "RGG_Private_Core"
+ScreenGui.Name = "RGG_Private_Core_EN"
 
 local IconoGG = Instance.new("TextButton", ScreenGui)
 IconoGG.Size = UDim2.new(0, 50, 0, 50)
@@ -142,7 +141,7 @@ Panel.Draggable = true
 local Titulo = Instance.new("TextLabel", Panel)
 Titulo.Size = UDim2.new(1, 0, 0, 35)
 Titulo.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-Titulo.Text = "  ⚡ RGG STEALTH CORE v11.0 (EDICIÓN PRIVADA)"
+Titulo.Text = "  ⚡ RGG STEALTH CORE v11.0 (PRIVATE EDITION)"
 Titulo.TextColor3 = Color3.fromRGB(255, 255, 255)
 Titulo.Font = Enum.Font.Code
 Titulo.TextSize = 12
@@ -152,21 +151,21 @@ local InputValor = Instance.new("TextBox", Panel)
 InputValor.Size = UDim2.new(0, 220, 0, 35)
 InputValor.Position = UDim2.new(0, 10, 0, 45)
 InputValor.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-InputValor.PlaceholderText = "Valor numérico..."
+InputValor.PlaceholderText = "Search numeric value..."
 InputValor.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local LabelEstado = Instance.new("TextLabel", Panel)
 LabelEstado.Size = UDim2.new(0, 100, 0, 35)
 LabelEstado.Position = UDim2.new(0, 240, 0, 45)
 LabelEstado.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-LabelEstado.Text = "Items: 0"
+LabelEstado.Text = "Lines: 0"
 LabelEstado.TextColor3 = Color3.fromRGB(0, 255, 150)
 
 local BtnBuscar = Instance.new("TextButton", Panel)
 BtnBuscar.Size = UDim2.new(0, 105, 0, 35)
 BtnBuscar.Position = UDim2.new(0, 10, 0, 90)
 BtnBuscar.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
-BtnBuscar.Text = "🔍 Buscar Memoria"
+BtnBuscar.Text = "🔍 Scan Memory"
 BtnBuscar.TextSize = 11
 BtnBuscar.TextColor3 = Color3.fromRGB(255, 255, 255)
 
@@ -174,7 +173,7 @@ local BtnModoRed = Instance.new("TextButton", Panel)
 BtnModoRed.Size = UDim2.new(0, 105, 0, 35)
 BtnModoRed.Position = UDim2.new(0, 122, 0, 90)
 BtnModoRed.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-BtnModoRed.Text = "📡 Mapear Red"
+BtnModoRed.Text = "📡 Map Network"
 BtnModoRed.TextSize = 11
 BtnModoRed.TextColor3 = Color3.fromRGB(255, 255, 255)
 
@@ -182,7 +181,7 @@ local BtnModoMemoria = Instance.new("TextButton", Panel)
 BtnModoMemoria.Size = UDim2.new(0, 105, 0, 35)
 BtnModoMemoria.Position = UDim2.new(0, 235, 0, 90)
 BtnModoMemoria.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-BtnModoMemoria.Text = "📦 Ver Memoria"
+BtnModoMemoria.Text = "📦 View Memory"
 BtnModoMemoria.TextSize = 11
 BtnModoMemoria.TextColor3 = Color3.fromRGB(255, 255, 255)
 
@@ -199,14 +198,14 @@ local InputMod = Instance.new("TextBox", Panel)
 InputMod.Size = UDim2.new(0, 165, 0, 35)
 InputMod.Position = UDim2.new(0, 10, 0, 295)
 InputMod.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-InputMod.PlaceholderText = "Inyección..."
+InputMod.PlaceholderText = "New Hack Value..."
 InputMod.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local BtnEjecutarHack = Instance.new("TextButton", Panel)
 BtnEjecutarHack.Size = UDim2.new(0, 85, 0, 35)
 BtnEjecutarHack.Position = UDim2.new(0, 185, 0, 295)
 BtnEjecutarHack.BackgroundColor3 = Color3.fromRGB(0, 135, 60)
-BtnEjecutarHack.Text = "⚡ Bloquear"
+BtnEjecutarHack.Text = "⚡ Lock Value"
 BtnEjecutarHack.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local BtnLimpiar = Instance.new("TextButton", Panel)
@@ -221,7 +220,7 @@ local function refrescarListaVisual()
         if hijo:IsA("Frame") then hijo:Destroy() end
     end
     
-    local listaOrigen = RGG_Stealth.ModoActual == "Memoria" and RGG_Stealth.Resultados or RGG_Stealth.EventosOcultos
+    local listaOrigen = RGG_Stealth.CurrentMode == "Memory" and RGG_Stealth.Results or RGG_Stealth.HiddenEvents
     ContenedorLista.CanvasSize = UDim2.new(0, 0, 0, #listaOrigen * 32)
     
     local maxItems = math.min(#listaOrigen, 50)
@@ -234,64 +233,66 @@ local function refrescarListaVisual()
         local BotonSeleccionar = Instance.new("TextButton", Fila)
         BotonSeleccionar.Size = UDim2.new(1, 0, 1, 0)
         BotonSeleccionar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-        BotonSeleccionar.TextColor3 = RGG_Stealth.ModoActual == "Red" and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(220, 220, 220)
+        BotonSeleccionar.TextColor3 = RGG_Stealth.CurrentMode == "Network" and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(220, 220, 220)
         BotonSeleccionar.TextXAlignment = Enum.TextXAlignment.Left
         BotonSeleccionar.Font = Enum.Font.Code
         BotonSeleccionar.TextSize = 12
         
-        if RGG_Stealth.ModoActual == "Memoria" then
-            BotonSeleccionar.Text = string.format(" [%02d] %s = (%s)", i, data.Nombre, tostring(data.Objeto.Value))
-            if RGG_Stealth.Congelados[data.Objeto] then BotonSeleccionar.BackgroundColor3 = Color3.fromRGB(0, 80, 120) end
+        if RGG_Stealth.CurrentMode == "Memory" then
+            BotonSeleccionar.Text = string.format(" [%02d] %s = (%s)", i, data.Name, tostring(data.Object.Value))
+            if RGG_Stealth.Frozen[data.Object] then BotonSeleccionar.BackgroundColor3 = Color3.fromRGB(0, 80, 120) end
         else
-BotonSeleccionar.Text = string.format(" [%02d] %s", i, data.Nombre)
-end
-if RGG_Stealth.IndiceSeleccionado == i then
-BotonSeleccionar.BackgroundColor3 = Color3.fromRGB(0, 135, 60)
-end
+            BotonSeleccionar.Text = string.format(" [%02d] %s", i, data.Name)
+        end
+        
+        if RGG_Stealth.SelectedIndex == i then
+            BotonSeleccionar.BackgroundColor3 = Color3.fromRGB(0, 135, 60)
+        end
+        
 BotonSeleccionar.MouseButton1Click:Connect(function()
-RGG_Stealth.IndiceSeleccionado = i
-InputMod.PlaceholderText = "Fila ["..i.."] lista"
+RGG_Stealth.SelectedIndex = i
+InputMod.PlaceholderText = "Line ["..i.."] Selected"
 refrescarListaVisual()
 end)
 end
 end
 IconoGG.MouseButton1Click:Connect(function() Panel.Visible = not Panel.Visible end)
 BtnBuscar.MouseButton1Click:Connect(function()
-RGG_Stealth.ModoActual = "Memoria"
-LabelEstado.Text = "Escan..."
+RGG_Stealth.CurrentMode = "Memory"
+LabelEstado.Text = "Scanning..."
 task.wait(0.01)
-local t = RGG_Stealth.EscanearServidores(InputValor.Text)
-LabelEstado.Text = "Items: " .. t
-RGG_Stealth.IndiceSeleccionado = nil
+local t = RGG_Stealth.ScanServices(InputValor.Text)
+LabelEstado.Text = "Lines: " .. t
+RGG_Stealth.SelectedIndex = nil
 refrescarListaVisual()
 end)
 BtnModoRed.MouseButton1Click:Connect(function()
-RGG_Stealth.ModoActual = "Red"
+RGG_Stealth.CurrentMode = "Network"
 BtnModoRed.BackgroundColor3 = Color3.fromRGB(0, 135, 60)
 BtnModoMemoria.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-RGG_Stealth.EscanearServidores()
-LabelEstado.Text = "Net: " .. #RGG_Stealth.EventosOcultos
-RGG_Stealth.IndiceSeleccionado = nil
+RGG_Stealth.ScanServices()
+LabelEstado.Text = "Net: " .. #RGG_Stealth.HiddenEvents
+RGG_Stealth.SelectedIndex = nil
 refrescarListaVisual()
 end)
 BtnModoMemoria.MouseButton1Click:Connect(function()
-RGG_Stealth.ModoActual = "Memoria"
+RGG_Stealth.CurrentMode = "Memory"
 BtnModoMemoria.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
 BtnModoRed.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-LabelEstado.Text = "Mem: " .. #RGG_Stealth.Resultados
-RGG_Stealth.IndiceSeleccionado = nil
+LabelEstado.Text = "Mem: " .. #RGG_Stealth.Results
+RGG_Stealth.SelectedIndex = nil
 refrescarListaVisual()
 end)
 BtnEjecutarHack.MouseButton1Click:Connect(function()
-if InputMod.Text == "" or not RGG_Stealth.IndiceSeleccionado then return end
-RGG_Stealth.InyectarDato(RGG_Stealth.IndiceSeleccionado, InputMod.Text, true)
-LabelEstado.Text = "¡Aplicado!"
+if InputMod.Text == "" or not RGG_Stealth.SelectedIndex then return end
+RGG_Stealth.InjectData(RGG_Stealth.SelectedIndex, InputMod.Text, true)
+LabelEstado.Text = "Applied!"
 task.wait(0.1)
 refrescarListaVisual()
 end)
 BtnLimpiar.MouseButton1Click:Connect(function()
-RGG_Stealth.LimpiarTodo()
-LabelEstado.Text = "Items: 0"
+RGG_Stealth.ClearAll()
+LabelEstado.Text = "Lines: 0"
 InputValor.Text = ""
 InputMod.Text = ""
 refrescarListaVisual()
