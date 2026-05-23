@@ -1,15 +1,16 @@
 -- ===================================================================
--- MINI WAR STATE-SPOOFER & HARVEST ENGINE v10.0 (EXCLUSIVE)
--- Features: Remote Crop Auto-Harvest + Logical State Overrider (Instant Built)
--- Instructions: Execute directly in Delta. No re-log needed if successful!
+-- MINI WAR GLOBAL TIME SPOOFER v12.0 (UNIVERSAL TIME RANGE ENGINE)
+-- Features: Remote Crop Auto-Harvest + Absolute Universal Timer Flattening
+-- Target Range: From 10 seconds to multiple days (Infinite Seconds Support)
 -- ===================================================================
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 
-local MiniWarState = {
-    Interval = 0.3
+local MiniWarGlobal = {
+    Interval = 0.3,
+    AbsoluteZero = 0 -- The ultimate target value for all construction clocks
 }
 
 -- 1. UNIVERSAL CROP AND HARVEST COLLECTOR
@@ -36,57 +37,75 @@ local function autoHarvestCrops()
 end
 
 -- ===================================================================
--- 2. LOGICAL STATE OVERRIDER (MANDA SEÑAL DE "YA CONSTRUIDO")
+-- 2. ABSOLUTE UNIVERSAL TIMER FLATTENER (NO BOUNDARIES / INF TIME SUPPORT)
 -- ===================================================================
-local function runStateOverrider()
+local function runGlobalTimeFlattener()
     pcall(function()
-        -- Escanear la memoria oculta de las tablas de los scripts de la base (Garbage Collector)
-        local garbage = getgc(true)
-        for _, t in ipairs(garbage) do
-            if type(t) == "table" then
-                -- Verificar si es una tabla que maneja el estado de una estructura o una obra
-                if t["Building"] or t["UpgradeData"] or t["ConstructionData"] or t["StructureState"] then
-                    
-                    -- Cambiar el estado booleano de la obra: decirle que ya NO está construyendo
-                    if t["IsBuilding"] ~= nil then t["IsBuilding"] = false end
-                    if t["Constructing"] ~= nil then t["Constructing"] = false end
-                    if t["UnderConstruction"] ~= nil then t["UnderConstruction"] = false end
-                    
-                    -- Cambiar el estado lógico de la obra: decirle que SÍ está terminada por completo
-                    if t["IsCompleted"] ~= nil then t["IsCompleted"] = true end
-                    if t["Finished"] ~= nil then t["Finished"] = true end
-                    if t["Built"] ~= nil then t["Built"] = true end
-                    if t["State"] ~= nil and type(t["State"]) == "string" then
-                        if string.lower(t["State"]) == "building" then
-                            t["State"] = "Built" -- Forzar el estado de "Construyendo" a "Construido"
+        -- Palabras clave exclusivas de construcción para proteger el sistema operativo del juego
+        local buildingKeywords = {"time", "timer", "duration", "build", "progress", "cooldown", "remaining", "seconds", "finish"}
+        
+        for _, model in ipairs(Workspace:GetDescendants()) do
+            if model:IsA("Model") then
+                -- A. Sobreescribir cualquier Atributo numérico de tiempo sin importar su tamaño
+                local attributes = model:GetAttributes()
+                for name, value in pairs(attributes) do
+                    local nameLower = string.lower(name)
+                    if type(value) == "number" and value > 0 then
+                        -- El script verifica si el nombre coincide con el tiempo, ignorando el valor numérico
+                        for _, keyword in ipairs(buildingKeywords) do
+                            if string.find(nameLower, keyword) then
+                                model:SetAttribute(name, MiniWarGlobal.AbsoluteZero)
+                                break
+                            end
+                        end
+                    end
+                end
+                
+                -- B. Sobreescribir cualquier instancia IntValue/NumberValue hija dentro de las estructuras
+                for _, child in ipairs(model:GetChildren()) do
+                    if child:IsA("IntValue") or child:IsA("NumberValue") then
+                        local childName = string.lower(child.Name)
+                        if child.Value > 0 then
+                            for _, keyword in ipairs(buildingKeywords) do
+                                if string.find(childName, keyword) then
+                                    child.Value = MiniWarGlobal.AbsoluteZero
+                                    break
+                                end
+                            end
                         end
                     end
                 end
             end
         end
-
-        -- Aplicar la misma re-escritura lógica a los atributos físicos de los modelos en el mapa
-        for _, model in ipairs(Workspace:GetDescendants()) do
-            if model:IsA("Model") then
-                -- Si el edificio tiene un atributo de estado, lo cambiamos a Completado de inmediato
-                if model:GetAttribute("State") and string.lower(tostring(model:GetAttribute("State"))) == "building" then
-                    model:SetAttribute("State", "Built")
+        
+        -- C. Sobreescribir registros en el Garbage Collector sin límites matemáticos de escala
+        local garbage = getgc(true)
+        for _, t in ipairs(garbage) do
+            if type(t) == "table" then
+                for k, v in pairs(t) do
+                    if type(k) == "string" and type(v) == "number" and v > 0 then
+                        local keyLower = string.lower(k)
+                        for _, keyword in ipairs(buildingKeywords) do
+                            if string.find(keyLower, keyword) then
+                                t[k] = MiniWarGlobal.AbsoluteZero
+                                break
+                            end
+                        end
+                    end
                 end
-                if model:GetAttribute("IsBuilding") ~= nil then model:SetAttribute("IsBuilding", false) end
-                if model:GetAttribute("IsCompleted") ~= nil then model:SetAttribute("IsCompleted", true) end
             end
         end
     end)
 end
 
 -- ===================================================================
--- EXECUTIVE BACKGROUND DESYNC LOOP
+-- CORE MOTOR PROCESS
 -- ===================================================================
 task.spawn(function()
-    print("[RGG Mini War v10.0] Logical State Overrider successfully injected.")
+    print("[RGG Mini War Global v12.0] Infinite Time Scale Engine fully initialized.")
     while true do
         autoHarvestCrops()
-        runStateOverrider()
-        task.wait(MiniWarState.Interval)
+        runGlobalTimeFlattener()
+        task.wait(MiniWarGlobal.Interval)
     end
 end)
