@@ -1,24 +1,22 @@
 -- ===================================================================
--- MINI WAR ADVANCED HARVESTER & HYPER-TIME ACCELERATOR
--- Features: Remote Crop Auto-Harvest + Time Warp Engine (Ultra Fast Progression)
--- Instructions: Copy and execute directly inside Delta.
+-- MINI WAR POPULATION SPOOFER & HARVEST ENGINE v6.0
+-- Features: Fake Builder Count Injection (Multiplier Bypass) + Auto Harvest
+-- Instructions: Execute directly in Delta.
 -- ===================================================================
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 
-local MiniWarEngine = {
-    Interval = 0.1,        -- Execution pulse speed (10 times per second)
-    TimeWarpSpeed = 50000  -- Multiplies time progression by 50,000x (Makes 16 minutes pass instantly)
+local MiniWarConfig = {
+    Interval = 0.4,
+    FakeWorkersAmount = 9999 -- Simulates 9,999 workers hitting the building at the same time
 }
 
--- 1. AUTO-HARVEST ENGINE (COSECHAS E ICONOS FLOTANTES)
+-- 1. UNIVERSAL CROP AND HARVEST COLLECTOR
 local function autoHarvestCrops()
     pcall(function()
-        -- Scan the workspace for plots, farms, or buildings that have a click collector
         for _, obj in ipairs(Workspace:GetDescendants()) do
-            -- Simulate clicking the floating crop/harvest icons natively
             if obj:IsA("ClickDetector") then
                 local parentName = string.lower(obj.Parent.Name)
                 if string.find(parentName, "farm") or string.find(parentName, "crop") or string.find(parentName, "harvest") or string.find(parentName, "resource") or string.find(parentName, "collect") or string.find(parentName, "mine") then
@@ -26,7 +24,6 @@ local function autoHarvestCrops()
                 end
             end
             
-            -- Trigger ProximityPrompts for gathering systems
             if obj:IsA("ProximityPrompt") then
                 local promptName = string.lower(obj.ObjectText or obj.ActionText)
                 if string.find(promptName, "harvest") or string.find(promptName, "collect") or string.find(promptName, "gather") or string.find(promptName, "claim") then
@@ -39,54 +36,35 @@ local function autoHarvestCrops()
     end)
 end
 
--- 2. TIME WARP PROGRESSION ENGINE (ACELERADOR ULTRA RÁPIDO - ANTI-CONGELAMIENTO)
-local function runHyperTimeAccelerator()
+-- 2. BUILDER COUNT SPOOFER ENGINE (FALSIFICADOR DE TRABAJADORES ACTIVOS)
+local function injectFakeWorkerCount()
     pcall(function()
-        -- Step A: Target physical Attributes on active construction models
-        for _, model in ipairs(Workspace:GetDescendants()) do
-            if model:IsA("Model") then
-                local attributes = model:GetAttributes()
-                for name, value in pairs(attributes) do
-                    local nameLower = string.lower(name)
-                    -- Locate any numeric timer managing duration, cooldowns, or build progress
-                    if type(value) == "number" and value > 0 then
-                        if string.find(nameLower, "time") or string.find(nameLower, "duration") or string.find(nameLower, "build") or string.find(nameLower, "progress") then
-                            -- Instead of zeroing out, subtract a massive block of time per pulse to simulate hyper speed
-                            local acceleratedValue = value - (1 * MiniWarEngine.TimeWarpSpeed)
-                            if acceleratedValue < 0 then acceleratedValue = 0 end
-                            model:SetAttribute(name, acceleratedValue)
-                        end
-                    end
-                end
+        -- Step A: Scan for physical values that update the builder display
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("IntValue") or obj:IsA("NumberValue") then
+                local nameLower = string.lower(obj.Name)
                 
-                -- Step B: Target active internal value timers inside the building hierarchy
-                for _, child in ipairs(model:GetChildren()) do
-                    if child:IsA("IntValue") or child:IsA("NumberValue") then
-                        local childName = string.lower(child.Name)
-                        if string.find(childName, "time") or string.find(childName, "timer") or string.find(childName, "duration") or string.find(childName, "remaining") then
-                            if child.Value > 0 then
-                                -- Drain the seconds at hyper-sonic speed
-                                local newVal = child.Value - (1 * MiniWarEngine.TimeWarpSpeed)
-                                if newVal < 0 then newVal = 0 end
-                                child.Value = newVal
-                            end
-                        end
-                    end
+                -- Target builder count variables assigned to active structural tasks
+                if string.find(nameLower, "workercount") or string.find(nameLower, "buildercount") or string.find(nameLower, "activebuilders") or string.find(nameLower, "assignedworkers") or string.find(nameLower, "currentbuilders") then
+                    obj.Value = MiniWarConfig.FakeWorkersAmount
                 end
             end
         end
         
-        -- Step C: Scan Garbage Collector local thread clocks to speed up script execution deltas
+        -- Step B: Deep loop inside local memory tables to spoof local script logic calculations
         local garbage = getgc(true)
         for _, t in ipairs(garbage) do
             if type(t) == "table" then
                 for k, v in pairs(t) do
-                    if type(k) == "string" and type(v) == "number" and v > 0 then
-                        local kLower = string.lower(k)
-                        if string.find(kLower, "timer") or string.find(kLower, "cooldown") or string.find(kLower, "buildtime") then
-                            local dynamicWarp = v - (0.1 * MiniWarEngine.TimeWarpSpeed)
-                            if dynamicWarp < 0 then dynamicWarp = 0 end
-                            t[k] = dynamicWarp
+                    if type(k) == "string" and type(v) == "number" then
+                        local keyLower = string.lower(k)
+                        
+                        -- Look for worker variables inside the local game systems
+                        if string.find(keyLower, "builders") or string.find(keyLower, "workers") or string.find(keyLower, "numworkers") or string.find(keyLower, "totalbuilders") or string.find(keyLower, "activeworkers") then
+                            -- Only override if it handles current building stats to avoid messing up unit spawners
+                            if t["Building"] or t["Construction"] or t["Progress"] or string.find(keyLower, "count") or string.find(keyLower, "amount") then
+                                t[k] = MiniWarConfig.FakeWorkersAmount
+                            end
                         end
                     end
                 end
@@ -96,13 +74,13 @@ local function runHyperTimeAccelerator()
 end
 
 -- ===================================================================
--- EXECUTIVE BACKGROUND THREAD LOOP
+-- EXECUTIVE SYSTEM LOOP
 -- ===================================================================
 task.spawn(function()
-    print("[RGG Mini War Master v3] Time Warp Engine successfully loaded.")
+    print("[RGG Mini War Pro v6.0] Universal Population Spoofer Active.")
     while true do
         autoHarvestCrops()
-        runHyperTimeAccelerator()
-        task.wait(MiniWarEngine.Interval)
+        injectFakeWorkerCount()
+        task.wait(MiniWarConfig.Interval)
     end
 end)
