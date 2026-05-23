@@ -1,23 +1,21 @@
 -- ===================================================================
--- MINI WAR CLOUD-BYPASS (ORIGINAL RESTRUCTURED)
--- Features: Remote Crop Auto-Harvest + Instant Time Flattening (Zero-Clock)
--- Instructions: Run script, place building, wait for timer to hit 0, then re-log!
+-- MINI WAR STATE-SPOOFER & HARVEST ENGINE v10.0 (EXCLUSIVE)
+-- Features: Remote Crop Auto-Harvest + Logical State Overrider (Instant Built)
+-- Instructions: Execute directly in Delta. No re-log needed if successful!
 -- ===================================================================
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 
-local MiniWarBypass = {
-    Interval = 0.4,
-    TargetTime = 0
+local MiniWarState = {
+    Interval = 0.3
 }
 
 -- 1. UNIVERSAL CROP AND HARVEST COLLECTOR
 local function autoHarvestCrops()
     pcall(function()
         for _, obj in ipairs(Workspace:GetDescendants()) do
-            -- Simulate clicking the floating crop/harvest icons natively
             if obj:IsA("ClickDetector") then
                 local parentName = string.lower(obj.Parent.Name)
                 if string.find(parentName, "farm") or string.find(parentName, "crop") or string.find(parentName, "harvest") or string.find(parentName, "resource") or string.find(parentName, "collect") or string.find(parentName, "mine") then
@@ -25,7 +23,6 @@ local function autoHarvestCrops()
                 end
             end
             
-            -- Trigger ProximityPrompts for gathering systems
             if obj:IsA("ProximityPrompt") then
                 local promptName = string.lower(obj.ObjectText or obj.ActionText)
                 if string.find(promptName, "harvest") or string.find(promptName, "collect") or string.find(promptName, "gather") or string.find(promptName, "claim") then
@@ -38,59 +35,58 @@ local function autoHarvestCrops()
     end)
 end
 
--- 2. INSTANT TIME FLATTENING ENGINE (FORCES ZERO UNTIL RE-LOG)
-local function runTimeFlattener()
+-- ===================================================================
+-- 2. LOGICAL STATE OVERRIDER (MANDA SEÑAL DE "YA CONSTRUIDO")
+-- ===================================================================
+local function runStateOverrider()
     pcall(function()
-        -- Target all attributes managing build times
-        for _, model in ipairs(Workspace:GetDescendants()) do
-            if model:IsA("Model") then
-                local attributes = model:GetAttributes()
-                for name, value in pairs(attributes) do
-                    local nameLower = string.lower(name)
-                    if type(value) == "number" and value > 0 then
-                        if string.find(nameLower, "time") or string.find(nameLower, "duration") or string.find(nameLower, "build") or string.find(nameLower, "progress") or string.find(nameLower, "cooldown") then
-                            model:SetAttribute(name, MiniWarBypass.TargetTime)
-                        end
-                    end
-                end
-                
-                -- Target Int/Number instances inside the building models
-                for _, child in ipairs(model:GetChildren()) do
-                    if child:IsA("IntValue") or child:IsA("NumberValue") then
-                        local childName = string.lower(child.Name)
-                        if string.find(childName, "time") or string.find(childName, "timer") or string.find(childName, "duration") or string.find(childName, "remaining") then
-                            child.Value = MiniWarBypass.TargetTime
+        -- Escanear la memoria oculta de las tablas de los scripts de la base (Garbage Collector)
+        local garbage = getgc(true)
+        for _, t in ipairs(garbage) do
+            if type(t) == "table" then
+                -- Verificar si es una tabla que maneja el estado de una estructura o una obra
+                if t["Building"] or t["UpgradeData"] or t["ConstructionData"] or t["StructureState"] then
+                    
+                    -- Cambiar el estado booleano de la obra: decirle que ya NO está construyendo
+                    if t["IsBuilding"] ~= nil then t["IsBuilding"] = false end
+                    if t["Constructing"] ~= nil then t["Constructing"] = false end
+                    if t["UnderConstruction"] ~= nil then t["UnderConstruction"] = false end
+                    
+                    -- Cambiar el estado lógico de la obra: decirle que SÍ está terminada por completo
+                    if t["IsCompleted"] ~= nil then t["IsCompleted"] = true end
+                    if t["Finished"] ~= nil then t["Finished"] = true end
+                    if t["Built"] ~= nil then t["Built"] = true end
+                    if t["State"] ~= nil and type(t["State"]) == "string" then
+                        if string.lower(t["State"]) == "building" then
+                            t["State"] = "Built" -- Forzar el estado de "Construyendo" a "Construido"
                         end
                     end
                 end
             end
         end
-        
-        -- Target table variables via Garbage Collector
-        local garbage = getgc(true)
-        for _, t in ipairs(garbage) do
-            if type(t) == "table" then
-                for k, v in pairs(t) do
-                    if type(k) == "string" and type(v) == "number" and v > 0 then
-                        local keyLower = string.lower(k)
-                        if string.find(keyLower, "timer") or string.find(keyLower, "buildtime") or string.find(keyLower, "cooldown") or string.find(keyLower, "remaining") then
-                            t[k] = MiniWarBypass.TargetTime
-                        end
-                    end
+
+        -- Aplicar la misma re-escritura lógica a los atributos físicos de los modelos en el mapa
+        for _, model in ipairs(Workspace:GetDescendants()) do
+            if model:IsA("Model") then
+                -- Si el edificio tiene un atributo de estado, lo cambiamos a Completado de inmediato
+                if model:GetAttribute("State") and string.lower(tostring(model:GetAttribute("State"))) == "building" then
+                    model:SetAttribute("State", "Built")
                 end
+                if model:GetAttribute("IsBuilding") ~= nil then model:SetAttribute("IsBuilding", false) end
+                if model:GetAttribute("IsCompleted") ~= nil then model:SetAttribute("IsCompleted", true) end
             end
         end
     end)
 end
 
 -- ===================================================================
--- NATIVE BACKGROUND RUNTIME
+-- EXECUTIVE BACKGROUND DESYNC LOOP
 -- ===================================================================
 task.spawn(function()
-    print("[RGG Mini War Cloud-Bypass] Original speed-run method loaded successfully.")
+    print("[RGG Mini War v10.0] Logical State Overrider successfully injected.")
     while true do
         autoHarvestCrops()
-        runTimeFlattener()
-        task.wait(MiniWarBypass.Interval)
+        runStateOverrider()
+        task.wait(MiniWarState.Interval)
     end
 end)
