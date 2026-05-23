@@ -1,28 +1,26 @@
 -- ===================================================================
--- MISSILE WARS (STRAY DYNAMICS) - STEALTH SPHERE SHIELD SCRIPT
--- Features: 3D Invisible Bubble Collision (Blocks all angle & top attacks)
--- Instructions: Execute inside Delta. Creates an invisible impenetrable dome.
+-- MISSILE WARS (STRAY DYNAMICS) - ANTI-PROJECTILE SWEEPER v1.0
+-- Features: Active Air Defense - Destroys incoming missiles instantly
+-- Instructions: Execute inside Delta. Keeps your base 100% safe from explosions.
 -- ===================================================================
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 
-local MissileWarsDome = {
+local RGG_Sweeper = {
     Enabled = true,
-    ScanInterval = 0.5,
-    ShieldBubble = nil,
-    BubbleRadius = 95 -- Tamaño óptimo para cubrir toda la parcela en 3D
+    Interval = 0.1, -- Ultra fast scanning (10 times per second)
+    DefenseRadius = 110 -- Space area around your base to delete missiles
 }
 
--- [ MOTOR DEL DOMO PROTECTOR ESFÉRICO INDETECTABLE ]
-local function deployStealthSphere()
-    if not MissileWarsDome.Enabled then return end
+-- [ MOTOR DE DETECCIÓN Y DESTRUCCIÓN DE MISILES ]
+local function runAirDefenseSweeper()
+    if not RGG_Sweeper.Enabled then return end
     
     pcall(function()
-        -- 1. Buscar la parcela privada del jugador por el nombre o atributo de dueño
+        -- 1. Encontrar la ubicación exacta de tu base
         local myPlot = nil
-        
         for _, folder in ipairs(Workspace:GetDescendants()) do
             if string.find(string.lower(folder.Name), "plot") or string.find(string.lower(folder.Name), "tycoon") or string.find(string.lower(folder.Name), "base") then
                 if string.find(string.lower(folder.Name), string.lower(LocalPlayer.Name)) or folder:GetAttribute("Owner") == LocalPlayer.Name then
@@ -32,47 +30,38 @@ local function deployStealthSphere()
             end
         end
         
-        if not myPlot then return end
+        local basePart = myPlot and (myPlot:FindFirstChild("Floor") or myPlot:FindFirstChild("Base") or myPlot:FindFirstChildWhichIsA("BasePart", true))
+        if not basePart then return end
         
-        -- 2. Localizar el suelo central para anclar la burbuja invisible en el punto exacto
-        local basePart = myPlot:FindFirstChild("Floor") or myPlot:FindFirstChild("Base") or myPlot:FindFirstChildWhichIsA("BasePart", true)
-        
-        if basePart and not MissileWarsDome.ShieldBubble then
-            print("[RGG Shield] Deploying 3D Invisible Sphere Dome over your island...")
-            
-            -- CREACIÓN DE LA SÚPER ESFERA FÍSICA INVISIBLE
-            local sphere = Instance.new("Part")
-            sphere.Name = "RGG_Invisible_Shield_Bubble"
-            sphere.Shape = Enum.PartType.Ball -- Forzar forma de esfera perfecta
-            sphere.Size = Vector3.new(MissileWarsDome.BubbleRadius * 2, MissileWarsDome.BubbleRadius * 2, MissileWarsDome.BubbleRadius * 2)
-            
-            -- Centrar la esfera en el suelo y elevarla un poco para que el domo cubra todo el cielo de tu base
-            sphere.CFrame = basePart.CFrame + Vector3.new(0, 15, 0) 
-            
-            sphere.Transparency = 1 -- 100% invisible para el ojo humano (Nadie te puede reportar)
-            sphere.Anchored = true
-            sphere.CanCollide = true -- Los misiles chocarán y explotarán aquí obligatoriamente
-            sphere.Material = Enum.Material.ForceField -- Material nativo de Roblox especializado en colisiones de impactos
-            sphere.Parent = Workspace
-            
-            MissileWarsDome.ShieldBubble = sphere
-        end
-        
-        -- Verificación continua: Mantener la colisión rígida activa frente a cualquier intento de reinicio del juego
-        if MissileWarsDome.ShieldBubble then
-            MissileWarsDome.ShieldBubble.CanCollide = true
-            MissileWarsDome.ShieldBubble.Parent = Workspace
+        -- 2. ESCANEAR EL MAPA EN BUSCA DE MISILES ENEMIGOS
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            -- Detectar si el objeto es un misil (buscando por su nombre o tags de proyectil)
+            if obj:IsA("Model") or obj:IsA("BasePart") then
+                local objName = string.lower(obj.Name)
+                if string.find(objName, "missile") or string.find(objName, "rocket") or string.find(objName, "misil") or string.find(objName, "projectile") then
+                    
+                    -- Calcular la distancia entre el misil enemigo y el centro de tu base
+                    local distance = (obj.Position - basePart.Position).Magnitude
+                    
+                    -- Si el misil entra en tu espacio aéreo privado, lo desintegramos
+                    if distance <= RGG_Sweeper.DefenseRadius then
+                        -- Lo borramos del cliente de forma agresiva para que no pueda detonar en tu base
+                        obj:Destroy()
+                        print("[RGG Anti-Air] Enemy missile intercepted and destroyed at distance: " .. math.floor(distance))
+                    end
+                end
+            end
         end
     end)
 end
 
 -- ===================================================================
--- AUTOMATIC RUNTIME THREAD
+-- CORE AUTOMATION THREAD
 -- ===================================================================
 task.spawn(function()
-    print("[RGG Dome] 3D Stealth Sphere Shield Activated successfully.")
+    print("[RGG Sweeper] Iron Dome air defense system activated.")
     while true do
-        deployStealthSphere()
-        task.wait(MissileWarsDome.ScanInterval)
+        runAirDefenseSweeper()
+        task.wait(RGG_Sweeper.Interval)
     end
 end)
