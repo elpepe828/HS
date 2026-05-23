@@ -1,6 +1,6 @@
 -- ===================================================================
--- MINI WAR ADVANCED HARVESTER & CONSTRUCTION MANAGEMENT
--- Features: Remote Crop Auto-Harvest + Construction Completion Stimulator
+-- MINI WAR ADVANCED HARVESTER & HYPER-TIME ACCELERATOR
+-- Features: Remote Crop Auto-Harvest + Time Warp Engine (Ultra Fast Progression)
 -- Instructions: Copy and execute directly inside Delta.
 -- ===================================================================
 
@@ -8,8 +8,9 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 
-local MiniWarHacks = {
-    HarvestInterval = 0.5 -- Scans crops and buildings 2 times per second
+local MiniWarEngine = {
+    Interval = 0.1,        -- Execution pulse speed (10 times per second)
+    TimeWarpSpeed = 50000  -- Multiplies time progression by 50,000x (Makes 16 minutes pass instantly)
 }
 
 -- 1. AUTO-HARVEST ENGINE (COSECHAS E ICONOS FLOTANTES)
@@ -17,21 +18,18 @@ local function autoHarvestCrops()
     pcall(function()
         -- Scan the workspace for plots, farms, or buildings that have a click collector
         for _, obj in ipairs(Workspace:GetDescendants()) do
-            -- Method A: Simulate clicking the floating crop/harvest icons natively
+            -- Simulate clicking the floating crop/harvest icons natively
             if obj:IsA("ClickDetector") then
                 local parentName = string.lower(obj.Parent.Name)
-                -- Check for keywords related to crops, farms, food, or resources in Mini War
                 if string.find(parentName, "farm") or string.find(parentName, "crop") or string.find(parentName, "harvest") or string.find(parentName, "resource") or string.find(parentName, "collect") or string.find(parentName, "mine") then
-                    -- Fire the click detector from any distance instantly
                     fireclickdetector(obj, 0)
                 end
             end
             
-            -- Method B: Trigger ProximityPrompts for gathering systems
+            -- Trigger ProximityPrompts for gathering systems
             if obj:IsA("ProximityPrompt") then
                 local promptName = string.lower(obj.ObjectText or obj.ActionText)
                 if string.find(promptName, "harvest") or string.find(promptName, "collect") or string.find(promptName, "gather") or string.find(promptName, "claim") then
-                    -- Simulate holding the interaction key instantly
                     obj:InputHoldBegin()
                     task.wait()
                     obj:InputHoldEnd()
@@ -41,30 +39,54 @@ local function autoHarvestCrops()
     end)
 end
 
--- 2. CONSTRUCTION TIME REDUCTION STIMULATOR (15+ MINUTE TIMERS)
-local function autoStimulateConstruction()
+-- 2. TIME WARP PROGRESSION ENGINE (ACELERADOR ULTRA RÁPIDO - ANTI-CONGELAMIENTO)
+local function runHyperTimeAccelerator()
     pcall(function()
-        -- Locate active construction nodes inside the workspace structures
+        -- Step A: Target physical Attributes on active construction models
         for _, model in ipairs(Workspace:GetDescendants()) do
             if model:IsA("Model") then
-                -- Check for building attributes that hold server-synced remaining seconds
                 local attributes = model:GetAttributes()
                 for name, value in pairs(attributes) do
                     local nameLower = string.lower(name)
-                    if string.find(nameLower, "time") or string.find(nameLower, "duration") or string.find(nameLower, "build") or string.find(nameLower, "progress") then
-                        if type(value) == "number" and value > 0 then
-                            -- Force the local state to zero to drop the wait barrier
-                            model:SetAttribute(name, 0)
+                    -- Locate any numeric timer managing duration, cooldowns, or build progress
+                    if type(value) == "number" and value > 0 then
+                        if string.find(nameLower, "time") or string.find(nameLower, "duration") or string.find(nameLower, "build") or string.find(nameLower, "progress") then
+                            -- Instead of zeroing out, subtract a massive block of time per pulse to simulate hyper speed
+                            local acceleratedValue = value - (1 * MiniWarEngine.TimeWarpSpeed)
+                            if acceleratedValue < 0 then acceleratedValue = 0 end
+                            model:SetAttribute(name, acceleratedValue)
                         end
                     end
                 end
                 
-                -- Force child values that handle internal client timers
+                -- Step B: Target active internal value timers inside the building hierarchy
                 for _, child in ipairs(model:GetChildren()) do
                     if child:IsA("IntValue") or child:IsA("NumberValue") then
                         local childName = string.lower(child.Name)
-                        if string.find(childName, "time") or string.find(childName, "timer") or string.find(childName, "duration") then
-                            child.Value = 0
+                        if string.find(childName, "time") or string.find(childName, "timer") or string.find(childName, "duration") or string.find(childName, "remaining") then
+                            if child.Value > 0 then
+                                -- Drain the seconds at hyper-sonic speed
+                                local newVal = child.Value - (1 * MiniWarEngine.TimeWarpSpeed)
+                                if newVal < 0 then newVal = 0 end
+                                child.Value = newVal
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Step C: Scan Garbage Collector local thread clocks to speed up script execution deltas
+        local garbage = getgc(true)
+        for _, t in ipairs(garbage) do
+            if type(t) == "table" then
+                for k, v in pairs(t) do
+                    if type(k) == "string" and type(v) == "number" and v > 0 then
+                        local kLower = string.lower(k)
+                        if string.find(kLower, "timer") or string.find(kLower, "cooldown") or string.find(kLower, "buildtime") then
+                            local dynamicWarp = v - (0.1 * MiniWarEngine.TimeWarpSpeed)
+                            if dynamicWarp < 0 then dynamicWarp = 0 end
+                            t[k] = dynamicWarp
                         end
                     end
                 end
@@ -77,10 +99,10 @@ end
 -- EXECUTIVE BACKGROUND THREAD LOOP
 -- ===================================================================
 task.spawn(function()
-    print("[RGG Mini War Master v2] English Dedicated Script Loaded Successfully.")
+    print("[RGG Mini War Master v3] Time Warp Engine successfully loaded.")
     while true do
         autoHarvestCrops()
-        autoStimulateConstruction()
-        task.wait(MiniWarHacks.HarvestInterval)
+        runHyperTimeAccelerator()
+        task.wait(MiniWarEngine.Interval)
     end
 end)
