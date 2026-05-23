@@ -1,23 +1,23 @@
 -- ===================================================================
--- MINI WAR CLOUD-SPOOFER & ANTI-RESET ENGINE v9.0 (MASTER EDITION)
--- Features: Safe Multi-Filtered Cost Spoofing + Anti-Reset Engine + Worker Freeze
--- Instructions: Wait for the interface notification, then re-log safely!
+-- MINI WAR CLOUD-BYPASS (ORIGINAL RESTRUCTURED)
+-- Features: Remote Crop Auto-Harvest + Instant Time Flattening (Zero-Clock)
+-- Instructions: Run script, place building, wait for timer to hit 0, then re-log!
 -- ===================================================================
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 
-local MiniWarMaster = {
-    Interval = 0.2,
-    TargetTimeOverride = 0,
-    WorkerFreezeSpeed = 0 -- Freezes workers so they cannot hit and erase the structure
+local MiniWarBypass = {
+    Interval = 0.4,
+    TargetTime = 0
 }
 
 -- 1. UNIVERSAL CROP AND HARVEST COLLECTOR
 local function autoHarvestCrops()
     pcall(function()
         for _, obj in ipairs(Workspace:GetDescendants()) do
+            -- Simulate clicking the floating crop/harvest icons natively
             if obj:IsA("ClickDetector") then
                 local parentName = string.lower(obj.Parent.Name)
                 if string.find(parentName, "farm") or string.find(parentName, "crop") or string.find(parentName, "harvest") or string.find(parentName, "resource") or string.find(parentName, "collect") or string.find(parentName, "mine") then
@@ -25,6 +25,7 @@ local function autoHarvestCrops()
                 end
             end
             
+            -- Trigger ProximityPrompts for gathering systems
             if obj:IsA("ProximityPrompt") then
                 local promptName = string.lower(obj.ObjectText or obj.ActionText)
                 if string.find(promptName, "harvest") or string.find(promptName, "collect") or string.find(promptName, "gather") or string.find(promptName, "claim") then
@@ -37,73 +38,43 @@ local function autoHarvestCrops()
     end)
 end
 
--- ===================================================================
--- 2. MASTER ANTI-RESET & WORKER IMMOBILIZER ENGINE
--- ===================================================================
-local function runMasterStealthSpoofer()
+-- 2. INSTANT TIME FLATTENING ENGINE (FORCES ZERO UNTIL RE-LOG)
+local function runTimeFlattener()
     pcall(function()
-        local validStructuralKeywords = {"build", "construct", "upgrade", "level", "structure", "barrack", "wall", "defense", "townhall", "hq"}
-        
-        -- STEP A: FREEZE WORKERS MOVEMENT TO PREVENT DATA ERASURE BLOWS
-        for _, npc in ipairs(Workspace:GetDescendants()) do
-            if npc:IsA("Model") and npc:FindFirstChild("Humanoid") then
-                local npcName = string.lower(npc.Name)
-                if string.find(npcName, "worker") or string.find(npcName, "builder") or string.find(npcName, "villager") or string.find(npcName, "drone") then
-                    -- Keep them completely still so they never touch the active project
-                    npc.Humanoid.WalkSpeed = MiniWarMaster.WorkerFreezeSpeed
-                end
-            end
-        end
-
-        -- STEP B: FILTER STRUCTURE MODELS AND LOCK VALS AGGRESSIVELY (ANTI-RESET)
+        -- Target all attributes managing build times
         for _, model in ipairs(Workspace:GetDescendants()) do
             if model:IsA("Model") then
-                local modelNameLower = string.lower(model.Name)
-                local isBuilding = false
-                
-                for _, keyword in ipairs(validStructuralKeywords) do
-                    if string.find(modelNameLower, keyword) then
-                        isBuilding = true
-                        break
+                local attributes = model:GetAttributes()
+                for name, value in pairs(attributes) do
+                    local nameLower = string.lower(name)
+                    if type(value) == "number" and value > 0 then
+                        if string.find(nameLower, "time") or string.find(nameLower, "duration") or string.find(nameLower, "build") or string.find(nameLower, "progress") or string.find(nameLower, "cooldown") then
+                            model:SetAttribute(name, MiniWarBypass.TargetTime)
+                        end
                     end
                 end
                 
-                if isBuilding then
-                    -- Apply persistent lock to Attributes
-                    local attributes = model:GetAttributes()
-                    for name, value in pairs(attributes) do
-                        local nameLower = string.lower(name)
-                        if type(value) == "number" then
-                            if string.find(nameLower, "time") or string.find(nameLower, "duration") or string.find(nameLower, "cooldown") or string.find(nameLower, "remaining") then
-                                model:SetAttribute(name, MiniWarMaster.TargetTimeOverride)
-                            end
-                        end
-                    end
-                    
-                    -- Apply persistent lock to Int/Number instances
-                    for _, child in ipairs(model:GetChildren()) do
-                        if child:IsA("IntValue") or child:IsA("NumberValue") then
-                            local childName = string.lower(child.Name)
-                            if string.find(childName, "time") or string.find(childName, "timer") or string.find(childName, "duration") or string.find(childName, "remaining") then
-                                child.Value = MiniWarMaster.TargetTimeOverride
-                            end
+                -- Target Int/Number instances inside the building models
+                for _, child in ipairs(model:GetChildren()) do
+                    if child:IsA("IntValue") or child:IsA("NumberValue") then
+                        local childName = string.lower(child.Name)
+                        if string.find(childName, "time") or string.find(childName, "timer") or string.find(childName, "duration") or string.find(childName, "remaining") then
+                            child.Value = MiniWarBypass.TargetTime
                         end
                     end
                 end
             end
         end
         
-        -- STEP C: SPOOF GARBAGE COLLECTOR REGISTERS CONSTANTLY
+        -- Target table variables via Garbage Collector
         local garbage = getgc(true)
         for _, t in ipairs(garbage) do
             if type(t) == "table" then
-                if t["Building"] or t["UpgradeData"] or t["ConstructionData"] or t["BuildTime"] or t["Structure"] then
-                    for k, v in pairs(t) do
-                        if type(k) == "string" and type(v) == "number" then
-                            local keyLower = string.lower(k)
-                            if string.find(keyLower, "timer") or string.find(keyLower, "buildtime") or string.find(keyLower, "cooldown") or string.find(keyLower, "remaining") then
-                                t[k] = MiniWarMaster.TargetTimeOverride
-                            end
+                for k, v in pairs(t) do
+                    if type(k) == "string" and type(v) == "number" and v > 0 then
+                        local keyLower = string.lower(k)
+                        if string.find(keyLower, "timer") or string.find(keyLower, "buildtime") or string.find(keyLower, "cooldown") or string.find(keyLower, "remaining") then
+                            t[k] = MiniWarBypass.TargetTime
                         end
                     end
                 end
@@ -113,29 +84,13 @@ local function runMasterStealthSpoofer()
 end
 
 -- ===================================================================
--- INTERFACE NOTIFICATION LAYER
--- ===================================================================
-local function createNotificationUI()
-    local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-    local Notification = Instance.new("TextLabel", ScreenGui)
-    Notification.Size = UDim2.new(0, 260, 0, 40)
-    Notification.Position = UDim2.new(0.5, -130, 0, 10)
-    Notification.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    Notification.Text = "🔒 [RGG STATUS]: SAVE BUFF READY. RE-LOG NOW!"
-    Notification.TextColor3 = Color3.fromRGB(0, 255, 150)
-    Notification.Font = Enum.Font.Code
-    Notification.TextSize = 11
-end
-
--- ===================================================================
--- MOTOR PROCESS INJECTION
+-- NATIVE BACKGROUND RUNTIME
 -- ===================================================================
 task.spawn(function()
-    createNotificationUI()
-    print("[RGG Mini War v9.0 Master] Anti-Reset protection layer active.")
+    print("[RGG Mini War Cloud-Bypass] Original speed-run method loaded successfully.")
     while true do
         autoHarvestCrops()
-        runMasterStealthSpoofer()
-        task.wait(MiniWarMaster.Interval)
+        runTimeFlattener()
+        task.wait(MiniWarBypass.Interval)
     end
 end)
